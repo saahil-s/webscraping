@@ -29,3 +29,5 @@ driver.quit()
 
 # Print or process the soup as needed
 print(soup.prettify())
+
+new_df = pd.DataFrame
