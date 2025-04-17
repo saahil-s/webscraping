@@ -51,7 +51,9 @@ class class_fetch_jobs_master:
         soup = BeautifulSoup(self.driver.page_source,'html.parser')
         tag = soup.body
         s = ' '.join([string for string in tag.strings])
-        open(f'foo.html','w').write(soup.prettify())
+        with open('foo.html', 'w', encoding='utf-8') as f:
+            f.write(soup.prettify())
+
 
     #overall jobs
     def get_overall_jobs(self):
