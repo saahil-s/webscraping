@@ -1,6 +1,5 @@
 #!/usr/local/bin/python3.9
 import os,sys
-from pyvirtualdisplay import Display
 from selenium import webdriver
 from bs4 import BeautifulSoup
 from selenium.webdriver.common.by import By
@@ -8,7 +7,6 @@ import re
 import time
 import pandas as pd
 import numpy as np
-from common.utils import utils
 import argparse
 import copy
 import random
@@ -131,13 +129,13 @@ class class_fetch_jobs_master:
         else:
             self.n_multi_jobs = n
 
-        utils.DLOG(f'Processed page={self.page_id}, Overall={self.n_jobs_count}, uniq={self.n_uniq_jobs}, multi_loc={self.n_multi_jobs}')
+        print(f'Processed page={self.page_id}, Overall={self.n_jobs_count}, uniq={self.n_uniq_jobs}, multi_loc={self.n_multi_jobs}')
 
     ##########################################################
     # scroll process
     ##########################################################
     def scroll_process(self):
-        utils.DLOG(f'Doing scroll_processing')
+        print(f'Doing scroll_processing')
         self.page_id = 1
         n_uniq_prev = 0
         n_uniq = self.get_n_uniq()
@@ -173,7 +171,7 @@ class class_fetch_jobs_master:
         return False
 
     def multi_page_process(self):
-        utils.DLOG(f'Doing multipage_processing')
+        print(f'Doing multipage_processing')
         self.pages_processed = {}
         while self.multi_page_get_next_page():
             self.update_counts(add=True)
@@ -199,7 +197,7 @@ class class_fetch_jobs_master:
         return False
 
     def next_page_process(self):
-        utils.DLOG(f'Doing multipage_processing')
+        print(f'Doing multipage_processing')
         self.pages_processed = {}
         while self.next_page_get_next_page():
             self.update_counts(add=True)
@@ -215,7 +213,7 @@ class class_fetch_jobs_master:
         self.driver = webdriver.Firefox()
 
         url = self.meta['URL']
-        utils.DLOG(f'Reading {url}')
+        print(f'Reading {url}')
         self.driver.get(self.meta['URL'])
         time.sleep(self.args.url_fetch_wait_time)
         self.save_html()
