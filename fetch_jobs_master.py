@@ -1,6 +1,7 @@
 #!/usr/local/bin/python3.9
 import os,sys
 from selenium import webdriver
+from selenium.webdriver.firefox.options import Options
 from bs4 import BeautifulSoup
 from selenium.webdriver.common.by import By
 import re
@@ -205,22 +206,33 @@ class class_fetch_jobs_master:
     ##########################################################
     # Master
     ##########################################################
+
     def run(self):
+        # 1) Initialization (parsing args, reading meta, etc.)
         self.init()
 
-        display = Display(visible=0, size=(800, 600))
-        display.start()
-        self.driver = webdriver.Firefox()
+        # 2) Configure Firefox to be headless
+        options = Options()
+        options.headless = True
+        # If Firefox isn’t on its default path, uncomment and adjust:
+        # options.binary_location = r"C:\Program Files\Mozilla Firefox\firefox.exe"
 
+        # 3) Start the WebDriver
+        self.driver = webdriver.Firefox(options=options)
+
+        # 4) Navigate, wait, and scrape
         url = self.meta['URL']
         print(f'Reading {url}')
-        self.driver.get(self.meta['URL'])
+        self.driver.get(url)
         time.sleep(self.args.url_fetch_wait_time)
         self.save_html()
-        eval(f'self.{self.meta["TYPE"].lower()}_process()')
 
-        self.driver.close()
-        display.stop()
+        # 5) Dispatch to the correct pagination routine
+        getattr(self, f"{self.meta['TYPE'].lower()}_process")()
+
+        # 6) Clean up
+        self.driver.quit()
+
 
 ########################################
 # MAIN
