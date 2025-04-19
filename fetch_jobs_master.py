@@ -24,8 +24,14 @@ class class_fetch_jobs_master:
         self.args = parser.parse_args()
 
     def read_meta(self):
+        # Loads data from url_class_map.xlsx into a dataframe
         df = pd.read_excel(self.args.url_class_map).set_index('CLASS_NAME')
+        
+        # Picks the row matching the given id
         df_m = df.loc[self.args.id]
+        
+        # If TYPE is one of the class names, merge into the parent row
+        # Stores selectors, regex patterns, navigation type, and the URL in self.meta
         if df_m['TYPE'] in set(df.index):
             df_t = df.loc[df_m['TYPE']].copy()
             df_t['URL'] = df_m['URL']
@@ -35,13 +41,13 @@ class class_fetch_jobs_master:
     def init(self):
         self.parse_args()
         
-        #set job counts
+        # Set up job counters to None
         self.n_jobs_count = self.n_uniq_jobs = self.n_multi_jobs = None
         
-        #patterns
+        # Instantiates the regex‐helper object from class_patterns
         self.patterns = class_patterns()
 
-        #read meta
+        # Calls read_meta from above
         self.read_meta()
 
     ###############################################
@@ -222,7 +228,7 @@ class class_fetch_jobs_master:
         # 3) Start the WebDriver
         self.driver = webdriver.Firefox(options=options)
 
-        # 4) Navigate, wait, and scrape
+        # 4) Navigate, wait, and scrape; dumps raw HTML to foo.html for debugging
         url = self.meta['URL']
         print(f'Reading {url}')
         self.driver.get(url)
