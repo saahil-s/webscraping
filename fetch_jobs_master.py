@@ -66,13 +66,15 @@ class class_fetch_jobs_master:
         if not self.meta['O.BY']:
             return None
         by = eval(f'By.{self.meta["O.BY"]}')
-        v = sorted(list(set([e.get_attribute('innerText') for e in self.driver.find_elements(by,self.meta['O.BY_VAL'])])))
+        v = sorted(list(set([e.text.strip() for e in self.driver.find_elements(by,self.meta['O.BY_VAL'])])))
         if len(v) != 1:
             print(v)
         assert(len(v) == 1)
 
         regex = self.patterns.s2regex(self.meta['O.PATTERN'])
         v = sorted(list(set(re.findall(regex,v[0]))))
+        if len(v) != 1:
+            print("DEBUG v:", repr(v))
         assert(len(v) == 1)
         return int(v[0])
 
