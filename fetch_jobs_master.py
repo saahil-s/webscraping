@@ -192,20 +192,29 @@ class class_fetch_jobs_master:
     ##########################################################
     def next_page_get_next_page(self):
         by = eval(f'By.{self.meta["NAV.BY"]}')
-        by_val = self.meta['NAV.BY_VAL']
-        if len(self.pages_processed.keys()) == 0:
+        by_val = self.meta["NAV.BY_VAL"]
+
+        # First call: initialize pages_processed
+        if not self.pages_processed:
             self.page_id = 1
-            self.pages_processed[self.page_id] = 1
+            self.pages_processed[self.page_id] = True
             return True
-        e_arr = self.driver.find_elements(by,by_val)
-        assert(len(e_arr) < 2)
-        if len(e_arr) == 1:
-            self.page_id = sorted(self.pages_processed)[-1]+1
-            self.pages_processed[self.page_id] = 1
-            e_arr[0].click()
-            time.sleep(self.args.click_wait_time)
-            return True
-        return False
+
+        # Find all “Next” links, but only keep the visible ones
+        candidates = self.driver.find_elements(by, by_val)
+        visible = [e for e in candidates if e.is_displayed()]
+
+        # If no visible “Next” button remains, we’re done
+        if not visible:
+            return False
+
+        # Click the first visible “Next” link and advance page_id
+        next_btn = visible[0]
+        self.page_id = sorted(self.pages_processed)[-1] + 1
+        self.pages_processed[self.page_id] = True
+        next_btn.click()
+        time.sleep(self.args.click_wait_time)
+        return True
 
     def next_page_process(self):
         print(f'Doing multipage_processing')
