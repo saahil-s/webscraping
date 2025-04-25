@@ -4,6 +4,8 @@ from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 from bs4 import BeautifulSoup
 from selenium.webdriver.common.by import By
+from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import ElementNotInteractableException
 import re
 import time
 import pandas as pd
@@ -170,16 +172,48 @@ class class_fetch_jobs_master:
     ##########################################################
     def multi_page_get_next_page(self):
         by = eval(f'By.{self.meta["NAV.BY"]}')
-        by_val = self.meta['NAV.BY_VAL']
-        for e in self.driver.find_elements(by,by_val):
-            s = e.get_attribute('innerText')
-            if s not in self.pages_processed:
-                self.pages_processed[s] = 1
-                self.page_id = s
-                e.click()
-                time.sleep(self.args.click_wait_time)
-                return True
+        by_val = self.meta["NAV.BY_VAL"]
+
+        # 0) Remove any cookie-consent or overlay elements that might block clicks
+        self.driver.execute_script("""
+            document.querySelectorAll(
+                '.ot-sdk-row, #onetrust-policy-text, #pixel-consent-container'
+            ).forEach(el => el.remove());
+        """)
+
+        # 1) Grab all potential page links
+        links = self.driver.find_elements(by, by_val)
+
+        # 2) Filter to purely digit‐only links (skip “Next” arrow and empty text)
+        for link in links:
+            txt = link.text.strip()
+            if not txt.isdigit():
+                continue
+            if txt in self.pages_processed:
+                continue
+
+            # First time seeing this page number
+            self.pages_processed[txt] = True
+            self.page_id = txt
+
+            # 3) Scroll into view
+            self.driver.execute_script(
+                "arguments[0].scrollIntoView({block:'center', inline:'center'});", link
+            )
+            time.sleep(0.3)
+
+            # 4) Try a real click, fallback to JS click
+            try:
+                link.click()
+            except ElementNotInteractableException:
+                self.driver.execute_script("arguments[0].click();", link)
+
+            time.sleep(self.args.click_wait_time)
+            return True
+
+        # Nothing left to click
         return False
+
 
     def multi_page_process(self):
         print(f'Doing multipage_processing')
@@ -194,25 +228,32 @@ class class_fetch_jobs_master:
         by = eval(f'By.{self.meta["NAV.BY"]}')
         by_val = self.meta["NAV.BY_VAL"]
 
-        # First call: initialize pages_processed
+        # 0) Dismiss any overlay (cookie banner, etc.)
+        try:
+            overlay = self.driver.find_element(By.ID, "pixel-consent-container")
+            self.driver.execute_script("arguments[0].remove();", overlay)
+        except Exception:
+            pass
+
+        # 1) First call: initialize
         if not self.pages_processed:
             self.page_id = 1
             self.pages_processed[self.page_id] = True
             return True
 
-        # Find all “Next” links, but only keep the visible ones
+        # 2) Find all candidates and keep only those both visible AND enabled
         candidates = self.driver.find_elements(by, by_val)
-        visible = [e for e in candidates if e.is_displayed()]
+        clickable = [e for e in candidates if e.is_displayed() and e.is_enabled()]
 
-        # If no visible “Next” button remains, we’re done
-        if not visible:
+        # 3) If none are clickable, we’re done
+        if not clickable:
             return False
 
-        # Click the first visible “Next” link and advance page_id
-        next_btn = visible[0]
+        # 4) Click the first clickable Next, advance page_id
+        next_btn = clickable[0]
         self.page_id = sorted(self.pages_processed)[-1] + 1
         self.pages_processed[self.page_id] = True
-        next_btn.click()
+        self.driver.execute_script("arguments[0].click();", next_btn)
         time.sleep(self.args.click_wait_time)
         return True
 
